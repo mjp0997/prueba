@@ -1,0 +1,109 @@
+{% extends 'base_template.html' %}
+
+{% block styles %}
+   <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+   <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+{% endblock styles %}
+
+{% block body %}
+<div class='row'>
+   <div class='col-9 mx-auto'>
+      <div class="card text-center mt-3">
+         <div class="card-header">
+            <h1>Cita #{{ appointment.id }}</h1>
+         </div>
+      
+         <div class="card-body">
+            <div class='row text-start'>
+               <div class='col'>
+                  <form action="{% url 'appointments:schedule' appointment.id %}" method="POST">
+                     {% csrf_token %}
+
+                     <p><b>Cliente: </b>{{ appointment.client }}</p>
+                     <p><b>Contacto: </b>{{ appointment.contact_phone }}</p>
+
+                     <div class="mb-3">
+                        <label class="form-label">Jardinero</label>
+                        <select class="form-select" name="gardener" required>
+                           <option disabled selected>Seleccione un jardinero</option>
+                           {% for gardener in gardeners %}
+                              <option value="{{ gardener.id }}">{{ gardener.name }}</option>
+                           {% endfor %}
+                        </select>
+                     </div>
+
+                     <div class='row'>
+                        <div class='col'>
+                           <div class="mb-3">
+                              <label class="form-label">Fecha a asignar</label>
+                              <input name="scheduled_to" type="date" class="form-control" required>
+                           </div>
+                        </div>
+
+                        <div class='col'>
+                           <div class="mb-3">
+                              <label class="form-label">Hora a asignar</label>
+                              <input name="scheduled_at" type="time" class="form-control" required>
+                           </div>
+                        </div>
+                     </div>
+
+                     <input type='hidden' id="address" name='address' required>
+                     <input type='hidden' id="lat" name='lat' required>
+                     <input type='hidden' id="lon" name='lon' required>
+
+                     <div id="map" style="width: 100%; height: 300px;" class="mb-3"></div>
+
+                     <button type="submit" class="btn btn-primary">Actualizar</button>
+                  </form>
+               </div>
+            </div>
+         </div>
+      
+         <div class="card-footer text-body-secondary">
+           Fecha de creación: {{ appointment.created_at }}
+         </div>
+      </div>
+   </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+   <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+   <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" type="text/css">
+
+   <script>
+      // TO MAKE THE MAP APPEAR YOU MUST
+      // ADD YOUR ACCESS TOKEN FROM
+      // https://account.mapbox.com
+      mapboxgl.accessToken = 'pk.eyJ1IjoibWFyaW9qcGciLCJhIjoiY2txeDQ2NGttMHBnNDJubnphcjFsN25ndSJ9.r3IxcEbNforOGEJrFnisYw';
+      const map = new mapboxgl.Map({
+         container: 'map',
+         // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+         style: 'mapbox://styles/mapbox/streets-v12',
+         center: [-79.4512, 43.6568],
+         zoom: 13
+      });
+      
+      // Add the control to the map.
+      var geocoder = new MapboxGeocoder({
+         accessToken: mapboxgl.accessToken,
+         mapboxgl: mapboxgl
+      });
+
+      map.addControl(
+         geocoder
+      );
+
+      geocoder.on('result', e => {
+         console.log(e)
+         const address = document.querySelector('#address');
+         const lon = document.querySelector('#lon');
+         const lat = document.querySelector('#lat');
+
+         address.value = e.result['place_name_es-ES'];
+         lon.value = e.result.center[0];
+         lat.value = e.result.center[1];
+      })
+   </script>
+{% endblock scripts %}

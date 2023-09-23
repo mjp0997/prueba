@@ -1,0 +1,113 @@
+{% extends 'base_template.html' %}
+
+{% block styles %}
+   <link href="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.css" rel="stylesheet">
+   <script src="https://api.mapbox.com/mapbox-gl-js/v2.14.1/mapbox-gl.js"></script>
+{% endblock styles %}
+
+{% block body %}
+{% if messages %}
+    {% for message in messages %}
+      <div class='bg-success text-white p-2 my-2 text-center rounded'>
+         {{ message }}
+      </div>
+    {% endfor %}
+{% endif %}
+
+<div class='row'>
+   <div class='col-9 mx-auto'>
+      <div class="card text-center mt-3">
+         <div class="card-header">
+            <h1>Cita #{{ appointment.id }}</h1>
+         </div>
+      
+         <div class="card-body">
+            <div class='row'>
+               <div class='col-6 text-start'>
+                  <p><b>Cliente: </b>{{ appointment.client }}</p>
+                  <p><b>Contacto: </b>{{ appointment.contact_phone }}</p>
+
+                  <hr>
+
+                  {% if appointment.gardener %}
+                     <p><b>Jardinero: </b>{{ appointment.gardener.name }}</p>
+                  {% endif %}
+
+                  {% if appointment.scheduled_to %}
+                     <p><b>Fecha asignada: </b>{{ appointment.scheduled_to }}</p>
+                  {% endif %}
+                  {% if appointment.scheduled_at %}
+                     <p><b>Hora: </b>{{ appointment.scheduled_at }}</p>
+                  {% endif %}
+                  {% if appointment.address %}
+                     <p><b>Dirección: </b>{{ appointment.address }}</p>
+                  {% endif %}
+               </div>
+      
+               <div class='col-6'>
+                  <p><b>Estado: </b>{{ appointment.status_value }}</p>
+                  {% if appointment.status == 'S' %}
+                     <a class="btn btn-primary" href="{% url 'appointments:schedule' appointment.id %}">Planificar</a>
+                  {% endif %}
+
+                  {% if appointment.status == 'P' %}
+                  <form action="{% url 'appointments:finish' appointment.id %}" method="POST">
+                     {% csrf_token %}
+                     <button class="btn btn-success" type="submit">Finalizar</button>
+                  </form>
+                  {% endif %}
+               </div>
+            </div>
+            
+            {% if appointment.lat and appointment.lon %}
+               <div id="map" style="width: 100%; height: 300px;" class="mb-3"></div>
+            {% endif %}
+         </div>
+      
+         <div class="card-footer text-body-secondary">
+           Fecha de creación: {{ appointment.created_at }}
+         </div>
+      </div>
+   </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+   <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+   <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" type="text/css">
+
+   <script>
+      // TO MAKE THE MAP APPEAR YOU MUST
+      // ADD YOUR ACCESS TOKEN FROM
+      // https://account.mapbox.com
+      mapboxgl.accessToken = 'pk.eyJ1IjoibWFyaW9qcGciLCJhIjoiY2txeDQ2NGttMHBnNDJubnphcjFsN25ndSJ9.r3IxcEbNforOGEJrFnisYw';
+      const map = new mapboxgl.Map({
+         container: 'map',
+         // Choose from Mapbox's core styles, or make your own style with Mapbox Studio
+         style: 'mapbox://styles/mapbox/streets-v12',
+         center: [{{ appointment.lon }}, {{ appointment.lat }}],
+         zoom: 13
+      });
+      
+      // Add the control to the map.
+      var geocoder = new MapboxGeocoder({
+         accessToken: mapboxgl.accessToken,
+         mapboxgl: mapboxgl
+      });
+
+      map.addControl(
+         geocoder
+      );
+
+      geocoder.on('result', e => {
+         console.log(e)
+         const address = document.querySelector('#address');
+
+         address.value = e.result['place_name_es-ES'];
+      })
+
+      var marker = new mapboxgl.Marker()
+         .setLngLat([{{ appointment.lon }}, {{ appointment.lat }}]) // Coordenadas del marcador (longitud, latitud)
+         .addTo(map);
+   </script>
+{% endblock scripts %}
